@@ -73,7 +73,9 @@ def get_answer(query, vs_path, history, mode, score_threshold=VECTOR_SEARCH_SCOR
                 source = resp["source_documents"]
                 history.append([query, "\n\n" + source])
                 yield history, ""
-
+        else:
+            yield history + [[query,
+                              "请选择知识库后进行测试，当前未选择知识库。"]], ""
     elif mode == "知识库测试":
         if os.path.exists(vs_path):
             resp, prompt = local_doc_qa.get_knowledge_based_conent_test(query=query, vs_path=vs_path,
