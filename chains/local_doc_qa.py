@@ -18,6 +18,7 @@ from agent import bing_search
 from langchain.docstore.document import Document
 from functools import lru_cache
 from textsplitter.zh_title_enhance import zh_title_enhance
+from langchain import SQLDatabase, SQLDatabaseChain
 
 
 # patch HuggingFaceEmbeddings to make it hashable
@@ -245,6 +246,29 @@ class LocalDocQA:
                         "source_documents": related_docs_with_score}
             yield response, history
 
+    # 查询数据库
+    def get_knowledge_based_conent_db(self, query, vs_path, llm):
+        db_answer = ""
+        try:
+            db = SQLDatabase.from_uri(f"mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}")
+            db_chain = SQLDatabaseChain(llm=llm, database=db, verbose=True)
+            db_answer = db_chain.run(query)
+        except Exception as e:
+            e = str(e)
+            if e.find("Answer") >= 0:
+                string = e.split('Answer:')
+                tmp = string[2] if len(string) > 2 else string[1]
+                tmp1 = tmp.split(']')
+                db_answer = tmp1[0]
+        finally:
+            if not db_answer:
+                db_answer = "暂时没有找到，请重新提问！"
+        torch_gc()
+
+        response = {"query": query,
+                    "source_documents": db_answer}
+        return response, ""
+
     # query      查询内容
     # vs_path    知识库路径
     # chunk_conent   是否启用上下文关联
@@ -295,7 +319,7 @@ class LocalDocQA:
     def update_file_from_vector_store(self,
                                       filepath: str or List[str],
                                       vs_path,
-                                      docs: List[Document],):
+                                      docs: List[Document], ):
         vector_store = load_vector_store(vs_path, self.embeddings)
         status = vector_store.update_doc(filepath, docs)
         return status

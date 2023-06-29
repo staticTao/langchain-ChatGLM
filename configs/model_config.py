@@ -27,7 +27,6 @@ EMBEDDING_MODEL = "text2vec"
 # Embedding running device
 EMBEDDING_DEVICE = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
-
 # supported LLM models
 # llm_model_dict 处理了loader的一些预设行为，如加载位置，模型名称，模型处理器实例
 # 在以下字典中修改属性值，以指定本地 LLM 模型存储位置
@@ -192,3 +191,8 @@ BING_SUBSCRIPTION_KEY = ""
 # 通过增加标题判断，判断哪些文本为标题，并在metadata中进行标记；
 # 然后将文本与往上一级的标题进行拼合，实现文本信息的增强。
 ZH_TITLE_ENHANCE = False
+# 数据库基本配置
+db_user = "root"
+db_password = "root"
+db_host = "192.168.20.105"
+db_name = "test"
