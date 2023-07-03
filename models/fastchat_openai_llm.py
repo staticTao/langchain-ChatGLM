@@ -31,8 +31,14 @@ class FastChatOpenAILLM(RemoteRpcModel, LLM, ABC):
     checkPoint: LoaderCheckPoint = None
     history = []
     history_len: int = 10
+    api_key: str = ""
 
-    def __init__(self, checkPoint: LoaderCheckPoint = None):
+    def __init__(self,
+                 checkPoint: LoaderCheckPoint = None,
+                 #  api_base_url:str="http://localhost:8000/v1",
+                 #  model_name:str="chatglm-6b",
+                 #  api_key:str=""
+                 ):
         super().__init__()
         self.checkPoint = checkPoint
 
@@ -53,14 +59,14 @@ class FastChatOpenAILLM(RemoteRpcModel, LLM, ABC):
 
     @property
     def _api_key(self) -> str:
-        pass
+        return self.api_key
 
     @property
     def _api_base_url(self) -> str:
         return self.api_base_url
 
     def set_api_key(self, api_key: str):
-        pass
+        self.api_key = api_key
 
     def set_api_base_url(self, api_base_url: str):
         self.api_base_url = api_base_url
@@ -73,7 +79,8 @@ class FastChatOpenAILLM(RemoteRpcModel, LLM, ABC):
         try:
             import openai
             # Not support yet
-            openai.api_key = "EMPTY"
+            # openai.api_key = "EMPTY"
+            openai.key = self.api_key
             openai.api_base = self.api_base_url
         except ImportError:
             raise ValueError(
@@ -81,6 +88,7 @@ class FastChatOpenAILLM(RemoteRpcModel, LLM, ABC):
                 "Please install it with `pip install openai`."
             )
         # create a chat completion
+        # * 主方法，即调用openai.ChatCompletion.create
         completion = openai.ChatCompletion.create(
             model=self.model_name,
             messages=self.build_message_list(prompt)
@@ -116,7 +124,8 @@ class FastChatOpenAILLM(RemoteRpcModel, LLM, ABC):
         try:
             import openai
             # Not support yet
-            openai.api_key = "EMPTY"
+            # openai.api_key = "EMPTY"
+            openai.api_key = self.api_key
             openai.api_base = self.api_base_url
         except ImportError:
             raise ValueError(

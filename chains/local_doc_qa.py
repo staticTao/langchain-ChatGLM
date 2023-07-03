@@ -201,12 +201,12 @@ class LocalDocQA:
             return vs_path, loaded_files
         else:
             logger.info("文件均未成功加载，请检查依赖包或替换为其他文件再次上传。")
-            return None, loaded_files
+            return None
 
     def one_knowledge_add(self, vs_path, one_title, one_conent, one_content_segmentation, sentence_size):
         try:
             if not vs_path or not one_title or not one_conent:
-                logger.info("知识库添加错误，请确认知识库名字、标题、内容是否正确！")
+                logger.info("应用库添加错误，请确认应用库名字、标题、内容是否正确！")
                 return None, [one_title]
             docs = [Document(page_content=one_conent + "\n", metadata={"source": one_title})]
             if not one_content_segmentation:
@@ -251,6 +251,7 @@ class LocalDocQA:
         db_answer = ""
         try:
             db = SQLDatabase.from_uri(f"mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}")
+
             db_chain = SQLDatabaseChain(llm=llm, database=db, verbose=True)
             db_answer = db_chain.run(query)
         except Exception as e:
@@ -270,10 +271,10 @@ class LocalDocQA:
         return response, ""
 
     # query      查询内容
-    # vs_path    知识库路径
+    # vs_path    应用库路径
     # chunk_conent   是否启用上下文关联
     # score_threshold    搜索匹配score阈值
-    # vector_search_top_k   搜索知识库内容条数，默认搜索5条结果
+    # vector_search_top_k   搜索应用库内容条数，默认搜索5条结果
     # chunk_sizes    匹配单段内容的连接上下文长度
     def get_knowledge_based_conent_test(self, query, vs_path, chunk_conent,
                                         score_threshold=VECTOR_SEARCH_SCORE_THRESHOLD,

@@ -178,15 +178,25 @@ llm_model_dict = {
         "pretrained_model_name": "gpt-3.5-turbo",
         "provides": "FastChatOpenAILLM",
         "local_model_path": None,
-        "api_base_url": "https://api.openapi.com/v1",
-        "api_key": ""
+        "api_base_url": "https://api.openai.com/v1",
+        "api_key": "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"
     },
 
+    # openai api
+    "openai": {
+        "name": "gpt-3.5-turbo",  # "name"修改为fastchat服务中的"model_name"
+        "pretrained_model_name": "gpt-3.5-turbo",
+        "local_model_path": None,
+        "mode": "remote",
+        "provides": "OpenAILLM",  # 使用fastchat api时，需保证"provides"为"FastChatOpenAILLM"
+        "api_base_url": "https://api.openapi.com/v1",  # "name"修改为fastchat服务中的"api_base_url"
+        "api_key": ""
+    },
 }
 
 # LLM 名称
 # ! bug: 调用fastchat接口时，若openai版本为0.27.6，则会raise AttributeError: 'str' object has no attribute 'get'
-LLM_MODEL = "chatglm2-6b"
+LLM_MODEL = "chatglm-6b"
 # 量化加载8bit 模型
 LOAD_IN_8BIT = False
 # Load the model with bfloat16 precision. Requires NVIDIA Ampere GPU.
@@ -208,16 +218,17 @@ USE_PTUNING_V2 = False
 # ? bug, 如果设为cpu，则在加载完模型后，不会进行下一步
 LLM_DEVICE = "cuda"  # "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
-# 知识库默认存储路径
+# 应用库默认存储路径
 KB_ROOT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "knowledge_base")
 
 # 基于上下文的prompt模版，请务必保留"{question}"和"{context}"
 PROMPT_TEMPLATE = """已知信息：
 {context} 
 
-根据上述已知信息，简洁和专业的来回答用户的问题。如果无法从中得到答案，请说 “根据已知信息无法回答该问题” 或 “没有提供足够的相关信息”，不允许在答案中添加编造成分，答案请使用中文。 问题是：{question}"""
+根据上述已知信息，简洁和专业的来回答用户的问题。对于回答一定要符合已知信息。不允许在答案中添加编造成分，答案请使用中文。
+如果无法从中得到答案，请说 “根据已知信息无法回答该问题” 或 “没有提供足够的相关信息”。 问题是：{question}"""
 
-# 缓存知识库数量
+# 缓存应用库数量
 CACHED_VS_NUM = 1
 
 # 文本分句长度
@@ -229,7 +240,7 @@ CHUNK_SIZE = 250
 # 传入LLM的历史记录长度
 LLM_HISTORY_LEN = 3
 
-# 知识库检索时返回的匹配内容条数
+# 应用库检索时返回的匹配内容条数
 VECTOR_SEARCH_TOP_K = 5
 
 # 知识检索内容相关度 Score, 数值范围约为0-1100，如果为0，则不生效，经测试设置为小于500时，匹配结果更精准
@@ -271,6 +282,6 @@ ZH_TITLE_ENHANCE = False
 
 # 数据库基本配置
 db_user = "root"
-db_password = "root"
+db_password = "123456"
 db_host = "192.168.20.105"
 db_name = "test"

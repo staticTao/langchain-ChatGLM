@@ -13,7 +13,7 @@ nltk.data.path = [NLTK_DATA_PATH] + nltk.data.path
 
 
 def get_vs_list():
-    lst_default = ["新建知识库"]
+    lst_default = ["新建应用库"]
     if not os.path.exists(KB_ROOT_PATH):
         return lst_default
     lst = os.listdir(KB_ROOT_PATH)
@@ -48,35 +48,32 @@ def get_answer(query, vs_path, history, mode, score_threshold=VECTOR_SEARCH_SCOR
                     enumerate(resp["source_documents"])])
             history[-1][-1] += source
             yield history, ""
-    elif mode == "知识库问答" and vs_path is not None and os.path.exists(vs_path) and "index.faiss" in os.listdir(
+    elif mode == "应用库问答" and vs_path is not None and os.path.exists(vs_path) and "index.faiss" in os.listdir(
             vs_path):
         for resp, history in local_doc_qa.get_knowledge_based_answer(
                 query=query, vs_path=vs_path, chat_history=history, streaming=streaming):
-            source = "\n\n"
-            source += "".join(
-                [f"""<details> <summary>出处 [{i + 1}] {os.path.split(doc.metadata["source"])[-1]}</summary>\n"""
-                 f"""{doc.page_content}\n"""
-                 f"""</details>"""
-                 for i, doc in
-                 enumerate(resp["source_documents"])])
-            history[-1][-1] += source
+            # source = "\n\n"
+            # source += "".join(
+            #     [
+            #         f"""<div>出处 [{i + 1}] {os.path.split(doc.metadata["source"])[-1]}\n"""
+            #         f"""{doc.page_content}\n"""
+            #         f"""</div>"""
+            #         for i, doc in
+            #         enumerate(resp["source_documents"])])
+            # history[-1][-1] += source
             yield history, ""
     elif mode == "数据库查询":
-        if not os.path.exists(vs_path):
-            resp, prompt = local_doc_qa.get_knowledge_based_conent_db(query=query, vs_path=vs_path,
-                                                                      llm=local_doc_qa.llm
-                                                                      )
-            if not resp["source_documents"]:
-                yield history + [[query,
-                                  "根据您的设定，没有匹配到任何内容，请确认您设置的知识相关度 Score 阈值是否过小或其他参数是否正确。"]], ""
-            else:
-                source = resp["source_documents"]
-                history.append([query, "\n\n" + source])
-                yield history, ""
-        else:
+        resp, prompt = local_doc_qa.get_knowledge_based_conent_db(query=query, vs_path=vs_path,
+                                                                  llm=local_doc_qa.llm
+                                                                  )
+        if not resp["source_documents"]:
             yield history + [[query,
-                              "请选择知识库后进行测试，当前未选择知识库。"]], ""
-    elif mode == "知识库测试":
+                              "根据您的设定，没有匹配到任何内容，请确认您设置的知识相关度 Score 阈值是否过小或其他参数是否正确。"]], ""
+        else:
+            source = resp["source_documents"]
+            history.append([query, "\n\n" + source])
+            yield history, ""
+    elif mode == "应用库测试":
         if os.path.exists(vs_path):
             resp, prompt = local_doc_qa.get_knowledge_based_conent_test(query=query, vs_path=vs_path,
                                                                         score_threshold=score_threshold,
@@ -94,11 +91,11 @@ def get_answer(query, vs_path, history, mode, score_threshold=VECTOR_SEARCH_SCOR
                         f"""</details>"""
                         for i, doc in
                         enumerate(resp["source_documents"])])
-                history.append([query, "以下内容为知识库中满足设置条件的匹配结果：\n\n" + source])
+                history.append([query, "以下内容为应用库中满足设置条件的匹配结果：\n\n" + source])
                 yield history, ""
         else:
             yield history + [[query,
-                              "请选择知识库后进行测试，当前未选择知识库。"]], ""
+                              "请选择应用库后进行测试，当前未选择应用库。"]], ""
     else:
         for answer_result in local_doc_qa.llm.generatorAnswer(prompt=query, history=history,
                                                               streaming=streaming):
@@ -167,7 +164,7 @@ def get_vector_store(vs_id, files, sentence_size, history, one_conent, one_conte
             vs_path, loaded_files = local_doc_qa.one_knowledge_add(vs_path, files, one_conent, one_content_segmentation,
                                                                    sentence_size)
         if len(loaded_files):
-            file_status = f"已添加 {'、'.join([os.path.split(i)[-1] for i in loaded_files if i])} 内容至知识库，并已加载知识库，请开始提问"
+            file_status = f"已添加 {'、'.join([os.path.split(i)[-1] for i in loaded_files if i])} 内容至应用库，并已加载应用库，请开始提问"
         else:
             file_status = "文件未成功加载，请重新上传文件"
     else:
@@ -179,41 +176,42 @@ def get_vector_store(vs_id, files, sentence_size, history, one_conent, one_conte
 
 
 def change_vs_name_input(vs_id, history):
-    if vs_id == "新建知识库":
+    if vs_id == "新建应用库":
         return gr.update(visible=True), gr.update(visible=True), gr.update(visible=False), None, history, \
             gr.update(choices=[]), gr.update(visible=False)
     else:
         vs_path = os.path.join(KB_ROOT_PATH, vs_id, "vector_store")
         if "index.faiss" in os.listdir(vs_path):
-            file_status = f"已加载知识库{vs_id}，请开始提问"
+            file_status = f"已加载应用库{vs_id}，请开始提问"
             return gr.update(visible=False), gr.update(visible=False), gr.update(visible=True), \
                 vs_path, history + [[None, file_status]], \
                 gr.update(choices=local_doc_qa.list_file_from_vector_store(vs_path), value=[]), \
                 gr.update(visible=True)
         else:
-            file_status = f"已选择知识库{vs_id}，当前知识库中未上传文件，请先上传文件后，再开始提问"
+            file_status = f"已选择应用库{vs_id}，当前应用库中未上传文件，请先上传文件后，再开始提问"
             return gr.update(visible=False), gr.update(visible=False), gr.update(visible=True), \
                 vs_path, history + [[None, file_status]], \
                 gr.update(choices=[], value=[]), gr.update(visible=True, value=[])
 
 
 # knowledge_base_test_mode_info = ("【注意】\n\n"
-#                                  "1. 您已进入知识库测试模式，您输入的任何对话内容都将用于进行知识库查询，"
-#                                  "并仅输出知识库匹配出的内容及相似度分值和及输入的文本源路径，查询的内容并不会进入模型查询。\n\n"
+#                                  "1. 您已进入应用库测试模式，您输入的任何对话内容都将用于进行应用库查询，"
+#                                  "并仅输出应用库匹配出的内容及相似度分值和及输入的文本源路径，查询的内容并不会进入模型查询。\n\n"
 #                                  "2. 知识相关度 Score 经测试，建议设置为 500 或更低，具体设置情况请结合实际使用调整。"
-#                                  """3. 使用"添加单条数据"添加文本至知识库时，内容如未分段，则内容越多越会稀释各查询内容与之关联的score阈值。\n\n"""
+#                                  """3. 使用"添加单条数据"添加文本至应用库时，内容如未分段，则内容越多越会稀释各查询内容与之关联的score阈值。\n\n"""
 #                                  "4. 单条内容长度建议设置在100-150左右。\n\n"
 #                                  "5. 本界面用于知识入库及知识匹配相关参数设定，但当前版本中，"
 #                                  "本界面中修改的参数并不会直接修改对话界面中参数，仍需前往`configs/model_config.py`修改后生效。"
 #                                  "相关参数将在后续版本中支持本界面直接修改。")
 knowledge_base_test_mode_info = ("智能查询系统已准备好了，请提问！")
+knowledge_base_test_mode_info1 = ("您已进入应用库测试模式，您输入的任何对话内容都将用于进行应用库查询")
 
 
 def change_mode(mode, history):
-    if mode == "知识库问答":
+    if mode == "应用库问答":
         return gr.update(visible=True), gr.update(visible=False), history
-        # + [[None, "【注意】：您已进入知识库问答模式，您输入的任何查询都将进行知识库查询，然后会自动整理知识库关联内容进入模型查询！！！"]]
-    elif mode == "知识库测试":
+        # + [[None, "【注意】：您已进入应用库问答模式，您输入的任何查询都将进行应用库查询，然后会自动整理应用库关联内容进入模型查询！！！"]]
+    elif mode == "应用库测试":
         return gr.update(visible=True), gr.update(visible=True), [[None,
                                                                    knowledge_base_test_mode_info]]
     else:
@@ -235,7 +233,7 @@ def change_chunk_conent(mode, label_conent, history):
 
 def add_vs_name(vs_name, chatbot):
     if vs_name in get_vs_list():
-        vs_status = "与已有知识库名称冲突，请重新选择其他名称后提交"
+        vs_status = "与已有应用库名称冲突，请重新选择其他名称后提交"
         chatbot = chatbot + [[None, vs_status]]
         return gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), gr.update(
             visible=False), chatbot, gr.update(visible=False)
@@ -246,7 +244,7 @@ def add_vs_name(vs_name, chatbot):
         # 新建向量库存储路径
         if not os.path.exists(os.path.join(KB_ROOT_PATH, vs_name, "vector_store")):
             os.makedirs(os.path.join(KB_ROOT_PATH, vs_name, "vector_store"))
-        vs_status = f"""已新增知识库"{vs_name}",将在上传文件并载入成功后进行存储。请在开始对话前，先完成文件上传。 """
+        vs_status = f"""已新增应用库"{vs_name}",将在上传文件并载入成功后进行存储。请在开始对话前，先完成文件上传。 """
         chatbot = chatbot + [[None, vs_status]]
         return gr.update(visible=True, choices=get_vs_list(), value=vs_name), gr.update(
             visible=False), gr.update(visible=False), gr.update(visible=True), chatbot, gr.update(visible=True)
@@ -262,10 +260,10 @@ def reinit_vector_store(vs_id, history):
                                   interactive=True, visible=True)
         vs_path, loaded_files = local_doc_qa.init_knowledge_vector_store(os.path.join(KB_ROOT_PATH, vs_id, "content"),
                                                                          vs_path, sentence_size)
-        model_status = """知识库构建成功"""
+        model_status = """应用库构建成功"""
     except Exception as e:
         logger.error(e)
-        model_status = """知识库构建未成功"""
+        model_status = """应用库构建未成功"""
         logger.info(model_status)
     return history + [[None, model_status]]
 
@@ -290,7 +288,7 @@ def delete_file(vs_id, files_to_delete, chatbot):
     elif len(rested_files) > 0:
         vs_status = "文件删除成功。"
     else:
-        vs_status = f"文件删除成功，知识库{vs_id}中无已上传文件，请先上传文件后，再开始提问。"
+        vs_status = f"文件删除成功，应用库{vs_id}中无已上传文件，请先上传文件后，再开始提问。"
     logger.info(",".join(files_to_delete) + vs_status)
     chatbot = chatbot + [[None, vs_status]]
     return gr.update(choices=local_doc_qa.list_file_from_vector_store(vs_path), value=[]), chatbot
@@ -299,7 +297,7 @@ def delete_file(vs_id, files_to_delete, chatbot):
 def delete_vs(vs_id, chatbot):
     try:
         shutil.rmtree(os.path.join(KB_ROOT_PATH, vs_id))
-        status = f"成功删除知识库{vs_id}"
+        status = f"成功删除应用库{vs_id}"
         logger.info(status)
         chatbot = chatbot + [[None, status]]
         return gr.update(choices=get_vs_list(), value=get_vs_list()[0]), gr.update(visible=True), gr.update(
@@ -307,7 +305,7 @@ def delete_vs(vs_id, chatbot):
             gr.update(visible=False), chatbot, gr.update(visible=False)
     except Exception as e:
         logger.error(e)
-        status = f"删除知识库{vs_id}失败"
+        status = f"删除应用库{vs_id}失败"
         chatbot = chatbot + [[None, status]]
         return gr.update(visible=True), gr.update(visible=False), gr.update(visible=False), \
             gr.update(visible=True), chatbot, gr.update(visible=True)
@@ -323,17 +321,10 @@ block_css = """.importantButton {
 }"""
 
 webui_title = """
-# 🎉langchain-ChatGLM WebUI🎉
-👍 [https://github.com/imClumsyPanda/langchain-ChatGLM](https://github.com/imClumsyPanda/langchain-ChatGLM)
+
 """
 default_vs = get_vs_list()[0] if len(get_vs_list()) > 1 else "为空"
-init_message = f"""欢迎使用 langchain-ChatGLM Web UI！
-
-请在右侧切换模式，目前支持直接与 LLM 模型对话或基于本地知识库问答。
-
-知识库问答模式，选择知识库名称后，即可开始问答，当前知识库{default_vs}，如有需要可以在选择知识库名称后上传文件/文件夹至知识库。
-
-知识库暂不支持文件删除，该功能将在后续版本中推出。
+init_message = f"""欢迎使用智能问答系统
 """
 
 # 初始化消息
@@ -359,31 +350,31 @@ with gr.Blocks(css=block_css, theme=gr.themes.Default(**default_theme_args)) as 
                 query = gr.Textbox(show_label=False,
                                    placeholder="请输入提问内容，按回车进行提交").style(container=False)
             with gr.Column(scale=5):
-                mode = gr.Radio(["LLM 对话", "知识库问答", "Bing搜索问答"],
+                mode = gr.Radio(["LLM 对话", "应用库问答", "Bing搜索问答"],
                                 label="请选择使用模式",
-                                value="知识库问答", )
-                knowledge_set = gr.Accordion("知识库设定", visible=False)
-                vs_setting = gr.Accordion("配置知识库")
+                                value="应用库问答", )
+                knowledge_set = gr.Accordion("应用库设定", visible=False)
+                vs_setting = gr.Accordion("配置应用库")
                 mode.change(fn=change_mode,
                             inputs=[mode, chatbot],
                             outputs=[vs_setting, knowledge_set, chatbot])
                 with vs_setting:
-                    vs_refresh = gr.Button("更新已有知识库选项")
+                    vs_refresh = gr.Button("更新已有应用库选项")
                     select_vs = gr.Dropdown(get_vs_list(),
-                                            label="请选择要加载的知识库",
+                                            label="请选择要加载的应用库",
                                             interactive=True,
                                             value=get_vs_list()[0] if len(get_vs_list()) > 0 else None
                                             )
-                    vs_name = gr.Textbox(label="请输入新建知识库名称，当前知识库命名暂不支持中文",
+                    vs_name = gr.Textbox(label="请输入新建应用库名称，当前应用库命名暂不支持中文",
                                          lines=1,
                                          interactive=True,
                                          visible=True)
-                    vs_add = gr.Button(value="添加至知识库选项", visible=True)
-                    vs_delete = gr.Button("删除本知识库", visible=False)
+                    vs_add = gr.Button(value="添加至应用库选项", visible=True)
+                    vs_delete = gr.Button("删除本应用库", visible=False)
                     file2vs = gr.Column(visible=False)
                     with file2vs:
-                        # load_vs = gr.Button("加载知识库")
-                        gr.Markdown("向知识库中添加文件")
+                        # load_vs = gr.Button("加载应用库")
+                        gr.Markdown("向应用库中添加文件")
                         sentence_size = gr.Number(value=SENTENCE_SIZE, precision=0,
                                                   label="文本入库分句长度限制",
                                                   interactive=True, visible=True)
@@ -392,17 +383,17 @@ with gr.Blocks(css=block_css, theme=gr.themes.Default(**default_theme_args)) as 
                                             file_types=['.txt', '.md', '.docx', '.pdf', '.png', '.jpg', ".csv"],
                                             file_count="multiple",
                                             show_label=False)
-                            load_file_button = gr.Button("上传文件并加载知识库")
+                            load_file_button = gr.Button("上传文件并加载应用库")
                         with gr.Tab("上传文件夹"):
                             folder_files = gr.File(label="添加文件",
                                                    file_count="directory",
                                                    show_label=False)
-                            load_folder_button = gr.Button("上传文件夹并加载知识库")
+                            load_folder_button = gr.Button("上传文件夹并加载应用库")
                         with gr.Tab("删除文件"):
                             files_to_delete = gr.CheckboxGroup(choices=[],
-                                                               label="请从知识库已有文件中选择要删除的文件",
+                                                               label="请从应用库已有文件中选择要删除的文件",
                                                                interactive=True)
-                            delete_file_button = gr.Button("从知识库中删除选中文件")
+                            delete_file_button = gr.Button("从应用库中删除选中文件")
                     vs_refresh.click(fn=refresh_vs_list,
                                      inputs=[],
                                      outputs=select_vs)
@@ -448,21 +439,21 @@ with gr.Blocks(css=block_css, theme=gr.themes.Default(**default_theme_args)) as 
                 query.submit(get_answer,
                              [query, vs_path, chatbot, mode],
                              [chatbot, query])
-    with gr.Tab("知识库测试 Beta"):
+    with gr.Tab("应用库测试 Beta"):
         with gr.Row():
             with gr.Column(scale=10):
-                chatbot = gr.Chatbot([[None, knowledge_base_test_mode_info]],
+                chatbot = gr.Chatbot([[None, knowledge_base_test_mode_info1]],
                                      elem_id="chat-box",
                                      show_label=False).style(height=750)
                 query = gr.Textbox(show_label=False,
                                    placeholder="请输入提问内容，按回车进行提交").style(container=False)
             with gr.Column(scale=5):
-                mode = gr.Radio(["知识库测试"],  # "知识库问答",
+                mode = gr.Radio(["应用库测试"],  # "应用库问答",
                                 label="请选择使用模式",
-                                value="知识库测试",
+                                value="应用库测试",
                                 visible=False)
-                knowledge_set = gr.Accordion("知识库设定", visible=True)
-                vs_setting = gr.Accordion("配置知识库", visible=True)
+                knowledge_set = gr.Accordion("应用库设定", visible=True)
+                vs_setting = gr.Accordion("配置应用库", visible=True)
                 mode.change(fn=change_mode,
                             inputs=[mode, chatbot],
                             outputs=[vs_setting, knowledge_set, chatbot])
@@ -472,7 +463,7 @@ with gr.Blocks(css=block_css, theme=gr.themes.Default(**default_theme_args)) as 
                                                 precision=0,
                                                 interactive=True)
                     vector_search_top_k = gr.Number(value=VECTOR_SEARCH_TOP_K, precision=0,
-                                                    label="获取知识库内容条数", interactive=True)
+                                                    label="获取应用库内容条数", interactive=True)
                     chunk_conent = gr.Checkbox(value=False,
                                                label="是否启用上下文关联",
                                                interactive=True)
@@ -483,20 +474,20 @@ with gr.Blocks(css=block_css, theme=gr.themes.Default(**default_theme_args)) as 
                                         inputs=[chunk_conent, gr.Textbox(value="chunk_conent", visible=False), chatbot],
                                         outputs=[chunk_sizes, chatbot])
                 with vs_setting:
-                    vs_refresh = gr.Button("更新已有知识库选项")
+                    vs_refresh = gr.Button("更新已有应用库选项")
                     select_vs_test = gr.Dropdown(get_vs_list(),
-                                                 label="请选择要加载的知识库",
+                                                 label="请选择要加载的应用库",
                                                  interactive=True,
                                                  value=get_vs_list()[0] if len(get_vs_list()) > 0 else None)
-                    vs_name = gr.Textbox(label="请输入新建知识库名称，当前知识库命名暂不支持中文",
+                    vs_name = gr.Textbox(label="请输入新建应用库名称，当前应用库命名暂不支持中文",
                                          lines=1,
                                          interactive=True,
                                          visible=True)
-                    vs_add = gr.Button(value="添加至知识库选项", visible=True)
+                    vs_add = gr.Button(value="添加至应用库选项", visible=True)
                     file2vs = gr.Column(visible=False)
                     with file2vs:
-                        # load_vs = gr.Button("加载知识库")
-                        gr.Markdown("向知识库中添加单条内容或文件")
+                        # load_vs = gr.Button("加载应用库")
+                        gr.Markdown("向应用库中添加单条内容或文件")
                         sentence_size = gr.Number(value=SENTENCE_SIZE, precision=0,
                                                   label="文本入库分句长度限制",
                                                   interactive=True, visible=True)
@@ -506,19 +497,19 @@ with gr.Blocks(css=block_css, theme=gr.themes.Default(**default_theme_args)) as 
                                             file_count="multiple",
                                             show_label=False
                                             )
-                            load_file_button = gr.Button("上传文件并加载知识库")
+                            load_file_button = gr.Button("上传文件并加载应用库")
                         with gr.Tab("上传文件夹"):
                             folder_files = gr.File(label="添加文件",
                                                    # file_types=['.txt', '.md', '.docx', '.pdf'],
                                                    file_count="directory",
                                                    show_label=False)
-                            load_folder_button = gr.Button("上传文件夹并加载知识库")
+                            load_folder_button = gr.Button("上传文件夹并加载应用库")
                         with gr.Tab("添加单条内容"):
                             one_title = gr.Textbox(label="标题", placeholder="请输入要添加单条段落的标题", lines=1)
                             one_conent = gr.Textbox(label="内容", placeholder="请输入要添加单条段落的内容", lines=5)
                             one_content_segmentation = gr.Checkbox(value=True, label="禁止内容分句入库",
                                                                    interactive=True)
-                            load_conent_button = gr.Button("添加内容并加载知识库")
+                            load_conent_button = gr.Button("添加内容并加载应用库")
                     # 将上传的文件保存到content文件夹下,并更新下拉框
                     vs_refresh.click(fn=refresh_vs_list,
                                      inputs=[],
@@ -578,7 +569,7 @@ with gr.Blocks(css=block_css, theme=gr.themes.Default(**default_theme_args)) as 
         load_model_button.click(reinit_model, show_progress=True,
                                 inputs=[llm_model, embedding_model, llm_history_len, no_remote_model, use_ptuning_v2,
                                         use_lora, top_k, chatbot], outputs=chatbot)
-        # load_knowlege_button = gr.Button("重新构建知识库")
+        # load_knowlege_button = gr.Button("重新构建应用库")
         # load_knowlege_button.click(reinit_vector_store, show_progress=True,
         #                            inputs=[select_vs, chatbot], outputs=chatbot)
     demo.load(
