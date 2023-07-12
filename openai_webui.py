@@ -9,7 +9,7 @@ import socket
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage, ChatMessage
 
-os.environ["OPENAI_API_KEY"] = "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"
+os.environ["OPENAI_API_KEY"] = "sk-"
 model = 'gpt-3.5-turbo-0613'
 llm = ChatOpenAI(model=model)
 function_descriptions = [

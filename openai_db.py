@@ -4,7 +4,7 @@ import time
 from langchain import SQLDatabase, SQLDatabaseChain, OpenAI
 import os
 
-os.environ["OPENAI_API_KEY"] = "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"
+os.environ["OPENAI_API_KEY"] = "sk-"
 
 with gr.Blocks() as demo:
     chatbot = gr.Chatbot(elem_id="chat-box",

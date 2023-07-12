@@ -8,7 +8,7 @@ import socket
 import json
 import datetime
 
-os.environ['OPENAI_API_KEY'] = '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'
+os.environ['OPENAI_API_KEY'] = 'sk-'
 model = 'gpt-3.5-turbo-0613'
 llm = ChatOpenAI(model=model)
 function_descriptions = [
@@ -41,21 +41,22 @@ question = """
 
 """
 
-def get_function_parameter_names(function):
-  if function is not None and inspect.isfunction(function):
-      parameter_names = inspect.signature(function).parameters.keys()
-      return list(parameter_names)
-  else:
-      return None
 
+def get_function_parameter_names(function):
+    if function is not None and inspect.isfunction(function):
+        parameter_names = inspect.signature(function).parameters.keys()
+        return list(parameter_names)
+    else:
+        return None
 
 
 def ScrapSteelStorage(keyWorks):
     localIP = socket.gethostbyname(socket.gethostname())  # 这个得到本地ip
-    str = 'keyWorks='+keyWorks
-    url = 'http://'+localIP+':8081/ScrapSteelStorage?' + str
+    str = 'keyWorks=' + keyWorks
+    url = 'http://' + localIP + ':8081/ScrapSteelStorage?' + str
     response = requests.get(url)
     return response.text
+
 
 # 获取函数的参数
 parameter_names = get_function_parameter_names(ScrapSteelStorage)
@@ -65,7 +66,6 @@ question = question.replace("{query}", query)
 
 first_response = llm.predict_messages([HumanMessage(content=question)], functions=function_descriptions)
 print(first_response)
-
 
 function_name = first_response.additional_kwargs["function_call"]["name"]
 arguments = json.loads(first_response.additional_kwargs["function_call"]["arguments"])
@@ -86,8 +86,8 @@ second_response = llm.predict_messages(
         AIMessage(content=str(first_response.additional_kwargs)),
         ChatMessage(
             role='function',
-            additional_kwargs = {'name': function_name},
-            content = returned_value
+            additional_kwargs={'name': function_name},
+            content=returned_value
         )
     ],
     functions=function_descriptions
@@ -102,8 +102,8 @@ third_response = llm.predict_messages(
         AIMessage(content=str(second_response.additional_kwargs)),
         ChatMessage(
             role='function',
-            additional_kwargs = {'name': function_name},
-            content = returned_value
+            additional_kwargs={'name': function_name},
+            content=returned_value
         )
     ], functions=function_descriptions
 )
